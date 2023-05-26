@@ -1,4 +1,3 @@
-import React from 'react';
 import { Hero } from "@/modules/Hero";
 import { Demo } from "@/modules/Demo";
 

@@ -2,9 +2,13 @@ import React, {useEffect, useState} from 'react';
 import copy from '@/assets/copy.svg';
 import linkIcon from '@/assets/link.svg';
 import loader from '@/assets/loader.svg';
-import tick from '@/assets/tick.svg';
 import {useLazyGetSummaryQuery} from "@/modules/Hero/store/article";
 import {Article} from "@/modules/Hero/domain/types";
+import {FetchBaseQueryError} from "@reduxjs/toolkit/query";
+
+type errorType = {
+    error?: string
+}
 
 export const Demo = () => {
     const [article, setArticle] = useState<Article>({
@@ -15,14 +19,14 @@ export const Demo = () => {
     const [getSummary, {error, isFetching}] = useLazyGetSummaryQuery();
 
     useEffect(() => {
-        const articlesFromLocalStorage = JSON.parse(localStorage.getItem('articles'));
+        const articlesFromLocalStorage = localStorage.getItem('articles');
 
         if (articlesFromLocalStorage) {
-            setAllArticles(articlesFromLocalStorage);
+            setAllArticles(JSON.parse(articlesFromLocalStorage));
         }
     }, [])
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const {data} = await getSummary(article.url);
 
@@ -35,7 +39,7 @@ export const Demo = () => {
         }
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setArticle({
             ...article,
             url: e.target.value,
@@ -90,7 +94,7 @@ export const Demo = () => {
                         Ошибка, попробуйте перезагрузить страницу
                         <br/>
                         <span className='font-satoshi font-normal text-gray-700'>
-                            {error?.data?.error}
+                            {((error as FetchBaseQueryError)?.data as errorType)?.error}
                         </span>
                     </p>
                 ) : (
