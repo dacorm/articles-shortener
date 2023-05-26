@@ -1,17 +1,38 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import copy from '@/assets/copy.svg';
 import linkIcon from '@/assets/link.svg';
 import loader from '@/assets/loader.svg';
 import tick from '@/assets/tick.svg';
+import {useLazyGetSummaryQuery} from "@/modules/Hero/store/article";
+import {Article} from "@/modules/Hero/domain/types";
 
 export const Demo = () => {
-    const [article, setArticle] = useState({
+    const [article, setArticle] = useState<Article>({
         url: '',
         summary: '',
     });
+    const [allArticles, setAllArticles] = useState<Article[]>([]);
+    const [getSummary, {error, isFetching}] = useLazyGetSummaryQuery();
+
+    useEffect(() => {
+        const articlesFromLocalStorage = JSON.parse(localStorage.getItem('articles'));
+
+        if (articlesFromLocalStorage) {
+            setAllArticles(articlesFromLocalStorage);
+        }
+    }, [])
 
     const handleSubmit = async (e) => {
-        alert('submitted');
+        e.preventDefault();
+        const {data} = await getSummary(article.url);
+
+        if (data?.summary) {
+            const newArticle = {...article, summary: data.summary};
+            const updatedAllArticles = [newArticle, ...allArticles];
+            setArticle(newArticle);
+            setAllArticles(updatedAllArticles);
+            localStorage.setItem('articles', JSON.stringify(updatedAllArticles));
+        }
     };
 
     const handleInputChange = (e) => {
@@ -23,13 +44,12 @@ export const Demo = () => {
 
     return (
         <section className='mt-16 w-full max-w-xl'>
-            {/*<Search />*/}
             <div className='flex flex-col w-full gap-2'>
                 <form
                     className='relative flex justify-center items-center'
                     onSubmit={handleSubmit}
                 >
-                    <img src={linkIcon} alt={'Иконка ссылки'} className='absolute left-0 my-2 ml-3 w-5' />
+                    <img src={linkIcon} alt={'Иконка ссылки'} className='absolute left-0 my-2 ml-3 w-5'/>
                     <input
                         type={'url'}
                         placeholder={'Введите ссылку на статью'}
@@ -45,10 +65,46 @@ export const Demo = () => {
                         <p>↵</p>
                     </button>
                 </form>
-
-
+                <div className='flex flex-col gap-1 max-h-60 overflow-y-auto'>
+                    {allArticles.map(article => (
+                        <div
+                            key={article.summary}
+                            onClick={() => setArticle(article)}
+                            className='link_card'
+                        >
+                            <div className='copy_btn'>
+                                <img src={copy} alt='Иконка скопировать' className='w-[40%] h-[40%] object-contain'/>
+                            </div>
+                            <p className='flex-1 font-satoshi text-blue-700 font-medium text-sm truncate'>
+                                {article.url}
+                            </p>
+                        </div>
+                    ))}
+                </div>
             </div>
-
+            <div className='my-10 max-w-full flex justify-center items-center'>
+                {isFetching ? (
+                    <img src={loader} alt='Иконка лоадера' className='w-20 h-20 object-contain'/>
+                ) : error ? (
+                    <p className='font-inter font-bold text-black text-center'>
+                        Ошибка, попробуйте перезагрузить страницу
+                        <br/>
+                        <span className='font-satoshi font-normal text-gray-700'>
+                            {error?.data?.error}
+                        </span>
+                    </p>
+                ) : (
+                    article.summary && (
+                        <div className='flex flex-col gap-3'>
+                            <h2 className='font-satoshi font-bold text-gray-700 text-xl'>
+                               Краткое содержание <span className='blue_gradient'>статьи</span>
+                            </h2>
+                            <div className='summary_box'>
+                                <p className='font-inter font-medium text-sm text-gray-700'>{article.summary}</p>
+                            </div>
+                        </div>)
+                )}
+            </div>
         </section>
     );
 };
